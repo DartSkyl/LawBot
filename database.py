@@ -54,6 +54,14 @@ class BotBase:
                                      "law_content TEXT"
                                      ");")
 
+            await connection.execute("CREATE TABLE IF NOT EXISTS complaints ("
+                                     "id SERIAL PRIMARY KEY,"
+                                     "username VARCHAR(155),"
+                                     "user_id BIGINT,"
+                                     "text TEXT,"
+                                     "answer_status BOOLEAN DEFAULT false"
+                                     ");")
+
     # ====================
     # Карты потребителей
     # ====================
@@ -138,3 +146,42 @@ class BotBase:
     async def remove_law(self, law_id):
         async with self.pool.acquire() as connection:
             await connection.execute(f"DELETE FROM laws WHERE law_id = '{law_id}'")
+
+    # ====================
+    # Обращения
+    # ====================
+
+    async def add_new_complaint(self, username, user_id, text):
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                INSERT INTO complaints (username, user_id, text)
+                VALUES ($1, $2, $3)
+                """,
+                username, user_id, text
+            )
+
+            # И сразу вернем ID обращения
+
+            result = await connection.fetch(f"SELECT id FROM complaints WHERE user_id = {user_id} ORDER BY id")
+            return result[-1]['id']
+
+    async def get_all_complaint(self) -> List[Record]:
+        async with self.pool.acquire() as connection:
+            result = await connection.fetch("SELECT * FROM complaints ORDER BY id")
+            return result
+
+    async def get_complaint_by_id(self, com_id) -> Record:
+        async with self.pool.acquire() as connection:
+            result = await connection.fetch(f"SELECT * FROM complaints WHERE id = {com_id}")
+            return result[0]
+
+    async def change_answer_status(self, com_id, status):
+        async with self.pool.acquire() as connection:
+            await connection.execute(f"UPDATE complaints "
+                                     f"SET answer_status = {status} "
+                                     f"WHERE id = {com_id}")
+
+    async def remove_complaint(self, com_id):
+        async with self.pool.acquire() as connection:
+            await connection.execute(f"DELETE FROM complaints WHERE id = {com_id}")

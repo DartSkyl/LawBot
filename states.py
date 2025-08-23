@@ -12,7 +12,13 @@ class Admin(StatesGroup):
     add_new_law_description = State()
     add_new_law_content = State()
 
+    complaint_answer = State()
+
     remove_card = State()
     remove_item = State()
     remove_law = State()
+    remove_complaint = State()
 
+
+class User(StatesGroup):
+    complaint = State()

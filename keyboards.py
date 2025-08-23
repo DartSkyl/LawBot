@@ -59,8 +59,8 @@ async def sub_keys(channel_url):
     return keys.as_markup()
 
 
-cancel_button = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text='Отмена')]
+cancel_button_user = ReplyKeyboardMarkup(keyboard=[
+    [KeyboardButton(text='🚫 Отмена')]
 ], resize_keyboard=True)
 
 
@@ -128,6 +128,15 @@ async def item_action(item):
     return key.as_markup()
 
 
+async def complaint_action(com_id: int, answer_status: bool):
+    keys = InlineKeyboardBuilder()
+    if not answer_status:
+        keys.button(text=f'✒ Ответить на обращение', callback_data=f'complaint_answer_{com_id}')
+    keys.button(text='Удалить обращение', callback_data=f'complaint_remove_{com_id}')
+    keys.adjust(1)
+    return keys.as_markup()
+
+
 confirm = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='✅ Да', callback_data='yes')],
     [InlineKeyboardButton(text='🚫 Нет', callback_data='no')]
@@ -137,4 +146,9 @@ complaints_menu = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text='📥 Смотреть жалобы/вопросы')],
     [KeyboardButton(text='💬 Ответить на жалобу/вопрос')],
     [KeyboardButton(text='🗑 Удалить жалобу/вопрос')]
+], resize_keyboard=True)
+
+
+cancel_button = ReplyKeyboardMarkup(keyboard=[
+    [KeyboardButton(text='Отмена')]
 ], resize_keyboard=True)

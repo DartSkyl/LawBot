@@ -10,7 +10,7 @@ from asyncpg.exceptions import UniqueViolationError
 from routers import admin_router
 import keyboards as keys
 from states import Admin
-from loader import base
+from loader import base, bot
 
 
 @admin_router.message(Command('admin'))
@@ -280,6 +280,85 @@ async def law_remove_confirm(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer('Выберете действие:', reply_markup=keys.law_menu)
     else:
         await open_law(callback.message, law_for_remove_id)
+
+
+# ====================
+# Обращения
+# ====================
+
+
+@admin_router.message(F.text == '📥 Жалобы / Вопросы')
+async def get_complaints_list(msg: Message):
+    """Выдаем список всех обращений"""
+    complaints_list = await base.get_all_complaint()
+    for c in complaints_list:
+        msg_text = (f'Вопрос/жалоба № <b>{c["id"]}</b>\n'
+                    f'От пользователя @{c["username"]}\n'
+                    f'{"❗Ожидает ответ❗" if not c["answer_status"] else "✅ Обработано"}\n\n'
+                    f'{c["text"]}')
+        await msg.answer(msg_text, reply_markup=await keys.complaint_action(
+            c["id"],
+            c["answer_status"]
+        ))
+
+
+@admin_router.callback_query(F.data.startswith('complaint_answer_'))
+async def start_complaint_answer(callback: CallbackQuery, state: FSMContext):
+    """Начинаем писать ответ на обращение"""
+    await callback.message.delete()
+    complaint_for_answer_id = int(callback.data.removeprefix('complaint_answer_'))
+    complaint = await base.get_complaint_by_id(complaint_for_answer_id)
+    msg_text = (f'Ответ на вопрос/жалобу № <b>{complaint["id"]}</b>\n'
+                f'Для пользователя @{complaint["username"]}\n\n'
+                f'Введите текст ответа:')
+    await state.set_data({'complaint_for_answer_id': complaint_for_answer_id})
+    await state.set_state(Admin.complaint_answer)
+    await callback.message.answer(msg_text, reply_markup=keys.cancel_button)
+
+
+@admin_router.message(Admin.complaint_answer, F.text != 'Отмена')
+async def catch_complaint_answer(msg: Message, state: FSMContext):
+    """Ловим ответ на обращение"""
+    complaint_for_answer_id = (await state.get_data())['complaint_for_answer_id']
+    await state.clear()
+    complaint = await base.get_complaint_by_id(complaint_for_answer_id)
+    msg_text = (f'Уважаемый пользователь! Вот ответ на ваш вопрос/жалобу № <b>{complaint["id"]}</b>:\n\n'
+                f'{msg.text}\n\nС уважением, администрация')
+    await bot.send_message(complaint['user_id'], msg_text)
+    await base.change_answer_status(complaint_for_answer_id, 'true')
+    await msg.answer('Отправлено 📩', reply_markup=keys.admin_menu)
+    msg_text = f'Ответ на вопрос/жалобу № <b>{complaint["id"]}</b> для пользователя @{complaint["username"]} доставлен'
+    await msg.answer(msg_text, reply_markup=await keys.complaint_action(complaint["id"], True))
+
+
+@admin_router.callback_query(F.data.startswith('complaint_remove_'))
+async def start_complaint_remove(callback: CallbackQuery, state: FSMContext):
+    """Начинаем удаление обращения"""
+    await callback.message.delete()
+    await state.set_state(Admin.remove_complaint)
+    await state.set_data({'complaint_for_remove_id': int(callback.data.removeprefix('complaint_remove_'))})
+    await callback.message.answer('Вы уверены?', reply_markup=keys.confirm)
+
+
+@admin_router.callback_query(Admin.remove_complaint, F.data.in_(['yes', 'no']))
+async def confirm_complaint_remove(callback: CallbackQuery, state: FSMContext):
+    """Ловим подтверждение удаления обращения"""
+    complaint_for_remove_id = (await state.get_data())['complaint_for_remove_id']
+    await state.clear()
+    await callback.message.delete()
+    if callback.data == 'yes':
+        await base.remove_complaint(complaint_for_remove_id)
+        await callback.message.answer('Обращение удалено', reply_markup=keys.admin_menu)
+    else:
+        complaint = await base.get_complaint_by_id(complaint_for_remove_id)
+        msg_text = (f'Вопрос/жалоба № <b>{complaint["id"]}</b>\n'
+                    f'От пользователя @{complaint["username"]}\n'
+                    f'{"❗Ожидает ответ❗" if not complaint["answer_status"] else "✅ Обработано"}\n\n'
+                    f'{complaint["text"]}')
+        await callback.message.answer(msg_text, reply_markup=await keys.complaint_action(
+            complaint["id"],
+            complaint["answer_status"]
+        ))
 
 
 @admin_router.message(F.text == 'Отмена')

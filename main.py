@@ -4,7 +4,7 @@ from aiogram.types import BotCommand
 
 import handlers  # noqa
 from loader import dp, bot, db_connect
-from utils.routers import admin_router, users_router
+from routers import admin_router, users_router
 
 
 async def start_up():

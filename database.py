@@ -30,11 +30,76 @@ class BotBase:
         )
 
     async def check_db_structure(self):
-        pass
-        # async with self.pool.acquire() as connection:
-        #     # Таблица со всеми ссылками
-        #     await connection.execute("CREATE TABLE IF NOT EXISTS recipe_links ("
-        #                              "link_id VARCHAR(155) PRIMARY KEY,"
-        #                              "url_name VARCHAR(155) NOT NULL,"
-        #                              "url_content TEXT NOT NULL"
-        #                              ");")
+        async with self.pool.acquire() as connection:
+            # Таблица со всеми ссылками
+            await connection.execute("CREATE TABLE IF NOT EXISTS consumer_card ("
+                                     "id SERIAL PRIMARY KEY,"
+                                     "card_name TEXT UNIQUE,"
+                                     "card_id VARCHAR(155) UNIQUE,"
+                                     "card_content TEXT NOT NULL"
+                                     ");")
+
+            await connection.execute("CREATE TABLE IF NOT EXISTS consumer_card_content ("
+                                     "id SERIAL PRIMARY KEY,"
+                                     "item_name TEXT,"
+                                     "item_id VARCHAR(155) UNIQUE,"
+                                     "item_content TEXT,"
+                                     "card_id VARCHAR(155) REFERENCES consumer_card(card_id) ON DELETE CASCADE"
+                                     ");")
+
+    # ====================
+    # Карты потребителей
+    # ====================
+
+    async def add_new_card(self, card_name, card_id, card_content):
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                INSERT INTO consumer_card (card_name, card_id, card_content)
+                VALUES ($1, $2, $3)
+                """,
+                card_name, card_id, card_content
+            )
+
+    async def get_all_cards(self) -> List[Record]:
+        async with self.pool.acquire() as connection:
+            result = await connection.fetch("SELECT * FROM consumer_card ORDER BY id")
+            return result
+
+    async def get_card_by_id(self, card_id) -> Record:
+        async with self.pool.acquire() as connection:
+            result = await connection.fetch(f"SELECT * FROM consumer_card WHERE card_id = '{card_id}'")
+            return result[0]
+
+    async def remove_card(self, card_id):
+        async with self.pool.acquire() as connection:
+            await connection.execute(f"DELETE FROM consumer_card WHERE card_id = '{card_id}'")
+
+    # ====================
+    # Пункты карт потребителей
+    # ====================
+
+    async def add_new_item(self, item_name, item_id, item_content, card_id):
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                INSERT INTO consumer_card_content (item_name, item_id, item_content, card_id)
+                VALUES ($1, $2, $3, $4)
+                """,
+                item_name, item_id, item_content, card_id
+            )
+
+    async def get_all_items_by_card(self, card_id) -> List[Record]:
+        async with self.pool.acquire() as connection:
+            result = await connection.fetch(f"SELECT * FROM consumer_card_content WHERE card_id = '{card_id}' "
+                                            f"ORDER BY id")
+            return result
+
+    async def get_item_by_id(self, item_id) -> Record:
+        async with self.pool.acquire() as connection:
+            result = await connection.fetch(f"SELECT * FROM consumer_card_content WHERE item_id = '{item_id}'")
+            return result[0]
+
+    async def remove_item(self, item_id):
+        async with self.pool.acquire() as connection:
+            await connection.execute(f"DELETE FROM consumer_card_content WHERE item_id = '{item_id}'")

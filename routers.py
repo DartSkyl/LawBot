@@ -24,6 +24,7 @@ admin_router = Router()
 
 # Выше описанный фильтр добавляем прямо в роутер
 admin_router.message.filter(IsAdminFilter(admins_list=ADMINS))
+admin_router.callback_query.filter(IsAdminFilter(admins_list=ADMINS))
 
 
 class UserSubscription(BaseFilter):

@@ -1,14 +1,9 @@
-from random import choice
-
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 from aiogram.filters import Command
-from aiogram import F
 from aiogram.fsm.context import FSMContext
 
-from utils.routers import users_router
+from routers import users_router
 import keyboards as keys
-from config import ADMINS
-from loader import base
 
 
 @users_router.message(Command('start'))

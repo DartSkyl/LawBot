@@ -1,5 +1,5 @@
 from aiogram.types import KeyboardButton
-from aiogram.utils.keyboard import ReplyKeyboardMarkup, ReplyKeyboardBuilder
+from aiogram.utils.keyboard import ReplyKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton, InlineKeyboardMarkup
 
 
@@ -13,6 +13,42 @@ main_menu = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text='📚 Законы и права')],
     [KeyboardButton(text='🆘 Жалоба / вопрос')]
 ], resize_keyboard=True)
+
+
+async def consumer_card_list_for_user(card_list: list):
+    key = InlineKeyboardBuilder()
+    for c in card_list:
+        key.button(text=c['card_name'].replace('\\', ''), callback_data=f'u_card_view_{c["card_id"]}')
+    key.adjust(1)
+    return key.as_markup()
+
+
+async def consumer_card_items(card_item_list: list):
+    key = InlineKeyboardBuilder()
+    for i in card_item_list:
+        key.button(text=i['item_name'].replace('\\', ''), callback_data=f'u_item_view_{i["item_id"]}')
+    key.button(text='⏪ Назад', callback_data=f'open_card_list')
+    key.adjust(1)
+    return key.as_markup()
+
+
+async def item_back(card_id):
+    key = InlineKeyboardBuilder()
+    key.button(text='⏪ Назад', callback_data=f'u_card_view_{card_id}')
+    key.adjust(1)
+    return key.as_markup()
+
+
+async def law_list_user(laws: list):
+    keys = InlineKeyboardBuilder()
+    for la in laws:
+        keys.button(text=la['law_name'].replace('\\', ''), callback_data=f'u_law_view_{la["law_id"]}')
+    keys.adjust(1)
+    return keys.as_markup()
+
+law_back = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='⏪ Назад', callback_data='open_law_list')]
+])
 
 
 async def sub_keys(channel_url):

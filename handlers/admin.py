@@ -76,7 +76,7 @@ async def catch_card_action(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer('Введите название пункта:', reply_markup=keys.cancel_button)
 
     # Удаление карты
-    else:
+    elif callback.data.startswith('card_remove_'):
         await state.set_state(Admin.remove_card)
         await state.set_data({'card_id_for_remove': callback.data.removeprefix('card_remove_')})
         await callback.message.answer('Вы уверены?', reply_markup=keys.confirm)
@@ -229,7 +229,7 @@ async def catch_law_action(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer('Введите название закона или права:', reply_markup=keys.cancel_button)
 
     # Удаляем закон
-    else:
+    elif callback.data.startswith('law_remove_'):
 
         await state.set_state(Admin.remove_law)
         await state.set_data({'law_for_remove_id': callback.data.removeprefix('law_remove_')})

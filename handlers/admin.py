@@ -185,6 +185,103 @@ async def catch_content_for_new_item(msg: Message, state: FSMContext):
     await open_card(msg, item_data['card_id'])
 
 
+# ====================
+# Законы и права
+# ====================
+
+
+@admin_router.message(F.text == '📕 Законы и права')
+async def open_law_menu(msg: Message):
+    """Открываем меню закона и права"""
+    await msg.answer('Выберете действие:', reply_markup=keys.law_menu)
+
+
+async def open_law(msg: Message, law_id: str):
+    """Открываем конкретный закон"""
+    law = await base.get_law_by_id(law_id)
+    msg_text = f'*_{law["law_name"]}:_*\n\nОписание \- _{law["law_description"]}_\n\n{law["law_content"]}'
+    await msg.answer(msg_text,
+                     reply_markup=await keys.law_action(law['law_name'], law['law_id']),
+                     parse_mode='MarkdownV2')
+
+
+@admin_router.callback_query(F.data.startswith('law_'))
+async def catch_law_action(callback: CallbackQuery, state: FSMContext):
+    """Ловим действие с законом"""
+    await callback.message.delete()
+
+    # Список текущих законов
+    if callback.data == 'law_current':
+
+        law_list = await base.get_all_laws()
+        await callback.message.answer('Выберете закон/право:',
+                                      reply_markup=await keys.law_list(law_list))
+
+    # Открываем конкретный закон
+    elif callback.data.startswith('law_show_'):
+
+        await open_law(callback.message, callback.data.removeprefix('law_show_'))
+
+    # Добавляем новый закон
+    elif callback.data == 'law_add':
+
+        await state.set_state(Admin.add_new_law_name)
+        await callback.message.answer('Введите название закона или права:', reply_markup=keys.cancel_button)
+
+    # Удаляем закон
+    else:
+
+        await state.set_state(Admin.remove_law)
+        await state.set_data({'law_for_remove_id': callback.data.removeprefix('law_remove_')})
+        await callback.message.answer('Вы уверены?', reply_markup=keys.confirm)
+
+
+@admin_router.message(Admin.add_new_law_name, F.text != 'Отмена')
+async def catch_name_new_law(msg: Message, state: FSMContext):
+    """Ловим название нового закона"""
+    await state.set_data({'law_name': msg.md_text})
+    await state.set_state(Admin.add_new_law_description)
+    await msg.answer('Теперь введите описание:')
+
+
+@admin_router.message(Admin.add_new_law_description, F.text != 'Отмена')
+async def catch_description_new_law(msg: Message, state: FSMContext):
+    """Ловим описание нового закона"""
+    await state.update_data({'law_description': msg.md_text})
+    await state.set_state(Admin.add_new_law_content)
+    await msg.answer('Теперь сам закон или право:')
+
+
+@admin_router.message(Admin.add_new_law_content, F.text != 'Отмена')
+async def catch_content_new_law(msg: Message, state: FSMContext):
+    """Ловим содержание нового закона"""
+    law_data = await state.get_data()
+    new_law_id = ''.join(choices(string.digits + string.ascii_letters, k=8))
+    await base.add_new_law(
+        law_name=law_data['law_name'],
+        law_id=new_law_id,
+        law_description=law_data['law_description'],
+        law_content=msg.md_text
+    )
+    await state.clear()
+    await msg.answer('Закон/право сохранено', reply_markup=keys.admin_menu)
+    await open_law(msg, new_law_id)
+
+
+@admin_router.callback_query(Admin.remove_law, F.data.in_(['yes', 'no']))
+async def law_remove_confirm(callback: CallbackQuery, state: FSMContext):
+    """Ловим подтверждение удаления закона"""
+    await callback.message.delete()
+    law_for_remove_id = (await state.get_data())['law_for_remove_id']
+    await state.clear()
+    if callback.data == 'yes':
+        await base.remove_law(law_for_remove_id)
+        await callback.message.answer('Закон/право удален', reply_markup=keys.admin_menu)
+        await callback.message.answer('Выберете действие:', reply_markup=keys.law_menu)
+    else:
+        await open_law(callback.message, law_for_remove_id)
+
+
 @admin_router.message(F.text == 'Отмена')
 async def cancel_func(msg: Message, state: FSMContext):
     """Отмена"""

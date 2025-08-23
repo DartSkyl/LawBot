@@ -2,7 +2,6 @@ from typing import List
 
 import asyncpg as apg
 from asyncpg import Record
-from asyncpg.exceptions import PostgresSyntaxError, UniqueViolationError
 
 
 class BotBase:
@@ -45,6 +44,14 @@ class BotBase:
                                      "item_id VARCHAR(155) UNIQUE,"
                                      "item_content TEXT,"
                                      "card_id VARCHAR(155) REFERENCES consumer_card(card_id) ON DELETE CASCADE"
+                                     ");")
+
+            await connection.execute("CREATE TABLE IF NOT EXISTS laws ("
+                                     "id SERIAL PRIMARY KEY,"
+                                     "law_name TEXT,"
+                                     "law_id VARCHAR(155) UNIQUE,"
+                                     "law_description TEXT,"
+                                     "law_content TEXT"
                                      ");")
 
     # ====================
@@ -103,3 +110,31 @@ class BotBase:
     async def remove_item(self, item_id):
         async with self.pool.acquire() as connection:
             await connection.execute(f"DELETE FROM consumer_card_content WHERE item_id = '{item_id}'")
+
+    # ====================
+    # Законы и права
+    # ====================
+
+    async def add_new_law(self, law_name, law_id, law_description, law_content):
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                INSERT INTO laws (law_name, law_id, law_description, law_content)
+                VALUES ($1, $2, $3, $4)
+                """,
+                law_name, law_id, law_description, law_content
+            )
+
+    async def get_all_laws(self) -> List[Record]:
+        async with self.pool.acquire() as connection:
+            result = await connection.fetch("SELECT * FROM laws ORDER BY id")
+            return result
+
+    async def get_law_by_id(self, law_id) -> Record:
+        async with self.pool.acquire() as connection:
+            result = await connection.fetch(f"SELECT * FROM laws WHERE law_id = '{law_id}'")
+            return result[0]
+
+    async def remove_law(self, law_id):
+        async with self.pool.acquire() as connection:
+            await connection.execute(f"DELETE FROM laws WHERE law_id = '{law_id}'")

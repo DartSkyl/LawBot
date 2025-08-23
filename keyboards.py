@@ -33,8 +33,7 @@ cancel_button = ReplyKeyboardMarkup(keyboard=[
 # ====================
 
 admin_menu = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text='📝 Карты потребителей')],
-    [KeyboardButton(text='📕 Законы и права')],
+    [KeyboardButton(text='📝 Карты потребителей'), KeyboardButton(text='📕 Законы и права')],
     [KeyboardButton(text='📥 Жалобы / Вопросы')]
 ], resize_keyboard=True)
 
@@ -42,6 +41,28 @@ consumer_card_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='📜 Текущие карты', callback_data='card_current')],
     [InlineKeyboardButton(text='➕ Добавить карту', callback_data='card_add')]
 ])
+
+law_menu = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='📜 Текущие законы и права', callback_data='law_current')],
+    [InlineKeyboardButton(text='➕ Добавить закон или право', callback_data='law_add')]
+])
+
+
+async def law_action(law_name: str, law_id: str):
+    keys = InlineKeyboardBuilder()
+    law_name = law_name.replace('\\', '')
+    keys.button(text=f'Удалить "{law_name}"', callback_data=f'law_remove_{law_id}')
+    keys.button(text='⏪ Назад', callback_data='law_current')
+    keys.adjust(1)
+    return keys.as_markup()
+
+
+async def law_list(laws: list):
+    keys = InlineKeyboardBuilder()
+    for la in laws:
+        keys.button(text=la['law_name'].replace('\\', ''), callback_data=f'law_show_{la["law_id"]}')
+    keys.adjust(1)
+    return keys.as_markup()
 
 
 async def consumer_card_list(card_list: list):
@@ -57,6 +78,7 @@ async def consumer_card_action(card_name: str, card_id: str, card_item_list: lis
     key.button(text='➕ Добавить пункт', callback_data=f'card_add-item_{card_id}')
     for i in card_item_list:
         key.button(text=i['item_name'].replace('\\', ''), callback_data=f'item_show_{i["item_id"]}')
+    card_name = card_name.replace('\\', '')
     key.button(text=f'Удалить "{card_name}"', callback_data=f'card_remove_{card_id}')
     key.adjust(1)
     return key.as_markup()

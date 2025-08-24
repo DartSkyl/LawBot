@@ -10,6 +10,15 @@ from states import User
 from config import ADMINS
 
 
+@users_router.callback_query(F.data == 'start')
+async def after_sub_check(callback: CallbackQuery, state: FSMContext):
+    """После проверки подписки"""
+    await state.clear()
+    await callback.message.delete()
+    await callback.message.answer("Добро пожаловать в юридический бот ⚖\nВыберите действие:",
+                                  reply_markup=keys.main_menu)
+
+
 @users_router.message(Command('start'))
 async def start_func(msg: Message, state: FSMContext):
     """Начало начал"""
@@ -130,4 +139,3 @@ async def cancel_func(msg: Message, state: FSMContext):
     """Отмена"""
     await state.clear()
     await msg.answer('Действие отменено', reply_markup=keys.main_menu)
-

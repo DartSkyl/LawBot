@@ -138,7 +138,7 @@ async def item_remove_confirm(callback: CallbackQuery, state: FSMContext):
 @admin_router.message(Admin.add_new_card_name, F.text != 'Отмена')
 async def catch_name_for_new_card(msg: Message, state: FSMContext):
     """Ловим название новой карты"""
-    await state.set_data({'card_name': msg.md_text})
+    await state.set_data({'card_name': msg.text})
     await state.set_state(Admin.add_new_card_content)
     await msg.answer('Теперь введите описание карты:')
 

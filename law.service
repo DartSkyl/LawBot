@@ -1,0 +1,14 @@
+[Unit]
+Description=RecipeBot
+After=postgresql.service
+
+[Service]
+Type=simple
+Restart=always
+User=root
+WorkingDirectory=/root/LawBot
+ExecStart=/root/LawBot/law/bin/python3 /root/LawBot/main.py
+OOMScoreAdjust=-1000
+
+[Install]
+WantedBy=multi-user.target

@@ -128,6 +128,14 @@ async def catch_complaint_text(msg: Message, state: FSMContext):
     # И оповестим админов
     for a in ADMINS:
         await bot.send_message(a, 'Новая жалоба/вопрос от пользователя')
+        msg_text = (f'Вопрос/жалоба № <b>{complaint_id}</b>\n'
+                    f'От пользователя @{msg.from_user.username}\n'
+                    f'❗Ожидает ответ❗\n\n'
+                    f'{msg.text}')
+        await bot.send_message(a, msg_text, reply_markup=await keys.complaint_action(
+            complaint_id,
+            False
+        ))
 
     await msg.answer(f'✅ Ваша жалоба/вопрос зарегистрирован(а)\n'
                      f'Номер вашего обращения: <b><i>{complaint_id}</i></b>',

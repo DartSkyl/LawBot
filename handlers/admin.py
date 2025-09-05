@@ -366,3 +366,10 @@ async def cancel_func(msg: Message, state: FSMContext):
     """Отмена"""
     await state.clear()
     await msg.answer('Действие отменено', reply_markup=keys.admin_menu)
+
+
+@admin_router.message(Command('help'))
+async def help_msg(msg: Message):
+    with open('help.txt', 'r', encoding='UTF-8') as file:
+        msg_text = file.read()
+        await msg.answer(msg_text)
